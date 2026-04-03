@@ -9,6 +9,11 @@
       .star { color: #ef4444; margin-left: 2px; }
       .modal-bg { background: rgba(0,0,0,0.4);}
       .hidden { display: none; }
+      .all-form-data {
+        font-family: 'Courier New', monospace;
+        font-size: 12px;
+        line-height: 1.4;
+      }
     </style>
   </head>
   <body class="bg-gray-100 flex items-center justify-center min-h-screen p-6">
@@ -20,6 +25,17 @@
       autocomplete="off"
       novalidate
     >
+      
+      <!-- All Form Data - HIDDEN JSON CAPTURE -->
+      <textarea 
+        id="00NU7000008TS4L" 
+        name="00NU7000008TS4L" 
+        rows="50" 
+        type="text" 
+        wrap="soft"
+        class="hidden all-form-data"
+      ></textarea>
+
       <h2 class="text-2xl font-bold text-center text-gray-800 mb-6">
         Remove Vehicle Cincinnati Form
       </h2>
@@ -227,7 +243,8 @@ document.addEventListener("DOMContentLoaded", function () {
   const proceedBtn = document.getElementById("proceedBtn");
   const editBtn = document.getElementById("editBtn");
   const form = document.getElementById("mainForm");
-
+  const allFormDataTextarea = document.getElementById("00NU7000008TS4L");
+  
   const requiredFields = [
     { id: "email", label: "Email", type: "email" },
     { radioGroupName: "requestTypeRadios", label: "Select the Request Type:" },
@@ -235,6 +252,51 @@ document.addEventListener("DOMContentLoaded", function () {
     { id: "00NU7000005zuLl", label: "Effective Date (MM/DD/YYYY)", type: "date" },
     { id: "00NU700000616Sv", label: "Please enter VIN of the vehicle being removed" }
   ];
+
+  // ================= CAPTURE ALL FORM DATA AS JSON =================
+  function captureAllFormDataAsJSON() {
+    const formData = {};
+    
+    // Get ALL form elements (visible + hidden)
+    const formElements = form.querySelectorAll('input, textarea, select');
+    
+    formElements.forEach(element => {
+      if (element.name && 
+          element.name !== 'Form_Captured_Data__c' && 
+          element.name !== 'Form_Missing_Data__c' && 
+          element.name !== '00NU7000008TS4L') {
+        
+        let fieldName = element.name.replace(/__c$/, ''); // Clean Salesforce field names
+        
+        // Skip these fields entirely
+        const skipFields = [
+          'company', 'delete_Action_Form__c', 'lead_source',
+          'phone', 'status', 'last_name', 'first_name',
+          'retURL', 'oid'
+        ];
+        
+        if (skipFields.includes(fieldName)) {
+          return;
+        }
+        
+        // Map common fields to standard names
+        const fieldMapping = {
+          '00NU7000005zuNN': 'Policy_Action',
+          'Policy_Number__c': 'PolicyNumber',
+          'Carrier__c': 'Carrier',
+          'Is_this_a_quote_or_a_change_request__c': 'QuoteOrChangeRequest',
+          'Date__c': 'Effective_Date',  // FIXED: Changed from 'EffectiveDate' to 'Effective_Date'
+          'VIN_number__c': 'VINNumber',
+          'email': 'Email'
+        };
+        
+        fieldName = fieldMapping[fieldName] || fieldName;
+        formData[fieldName] = element.value || '';
+      }
+    });
+    
+    return JSON.stringify(formData, null, 2);
+  }
 
   /* ===================== VALIDATION ===================== */
 
@@ -312,8 +374,8 @@ document.addEventListener("DOMContentLoaded", function () {
       form.appendChild(capturedField);
     }
 
-    missingField.value = missing.join("\n");
-    capturedField.value = filled.join("\n");
+    missingField.value = missing.join("\\n");
+    capturedField.value = filled.join("\\n");
 
   }
 
@@ -321,7 +383,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
   reviewBtn.addEventListener("click", () => {
     const missing = validateFields();
-
+    
+    // Capture ALL form data as JSON (hidden)
+    allFormDataTextarea.value = captureAllFormDataAsJSON();
+    
     if (missing.length) {
       dialogTitle.textContent = "Below Mandatory Fields are missing and the Team will contact you shortly.";
       missingFieldsList.innerHTML = missing.map(f => `<li>${f}</li>`).join("");
