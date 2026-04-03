@@ -285,13 +285,20 @@ document.addEventListener("DOMContentLoaded", function () {
           'Policy_Number__c': 'PolicyNumber',
           'Carrier__c': 'Carrier',
           'Is_this_a_quote_or_a_change_request__c': 'QuoteOrChangeRequest',
-          'Date__c': 'Effective_Date',  // FIXED: Changed from 'EffectiveDate' to 'Effective_Date'
+          'Date__c': 'Effective_Date',
           'VIN_number__c': 'VINNumber',
           'email': 'Email'
         };
         
         fieldName = fieldMapping[fieldName] || fieldName;
-        formData[fieldName] = element.value || '';
+        
+        // **CHANGED: Convert MM/DD/YYYY to YYYY-MM-DD for date field**
+        if (fieldName === 'Effective_Date' && element.value) {
+          const [m, d, y] = element.value.split('/');
+          formData[fieldName] = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+        } else {
+          formData[fieldName] = element.value || '';
+        }
       }
     });
     
